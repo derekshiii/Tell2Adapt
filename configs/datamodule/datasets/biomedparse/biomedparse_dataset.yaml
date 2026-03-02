@@ -1,0 +1,14 @@
+_target_: azureml.acft.image.components.olympus.core.ModuleDatasets    
+train:
+  _target_: torch.utils.data.ConcatDataset
+  _partial_: True
+  datasets:
+    - _target_: src.datasets.biomedseg_dataset_3d.BiomedSegDataset3D
+      root_dir: "/datadrive/olympus-external/data/BiomedParse_SegFM3D/CVPR-BiomedSegFM/instance/3D_val_npz"
+test:
+  # _target_: torch.utils.data.ConcatDataset
+  # datasets:
+  - _target_: src.datasets.biomedseg_dataset_3d.BiomedSegDataset3D 
+    _partial_: True
+    root_dir: "/datadrive/olympus-external/data/BiomedParse_SegFM3D/CVPR-BiomedSegFM/instance/3D_val_npz"
+    split: "test"

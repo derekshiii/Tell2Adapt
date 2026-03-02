@@ -1,0 +1,9 @@
+_target_: azureml.acft.image.components.olympus.core.ModuleDatasets   
+train:
+  _target_: torch.utils.data.ConcatDataset
+  _partial_: True
+  datasets:
+    - _target_: src.datasets.biomedparse_dataset.BiomedParseDataset
+      root_dir: ${mounts.external}/data/MIP3D_CVPR_FT/PET/processed
+    - _target_: src.datasets.biomedparse_dataset.BiomedParseDataset
+      root_dir: ${mounts.external}/data/MIP3D_CVPR_FT/MR_crossmoda/processed
