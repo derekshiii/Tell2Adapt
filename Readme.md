@@ -176,7 +176,7 @@ The refined `.npz` files have the same structure as the inputs and can be direct
 
 - [x] Provide all source code for reproduct 
 - [ ] Add evaluation scripts for segmentation metrics
-- [ ] Provide pre-trained model checkpoints
+- [x] Provide pre-trained model [nnUNet checkpoints](https://drive.google.com/file/d/1p6qi5SVRZon-5lVvazllTf6Uc8oIzFPJ/view?usp=sharing)
 - [ ] Include ablation study scripts
 
 ## Citation
