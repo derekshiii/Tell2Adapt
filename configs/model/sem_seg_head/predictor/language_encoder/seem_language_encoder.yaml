@@ -20,13 +20,13 @@ lang_projection:
   _target_: torch.nn.Parameter
   data:
     _target_: torch.randn
-    size: 
-      - 512 
+    size:
+      - 512
       - 512
 max_token_num: 77
 # queue_operator:
 #   test_queue:
 #     _target_: torch.randn
-#     size: 
-#       - 10 
+#     size:
+#       - 10
 #       - 256

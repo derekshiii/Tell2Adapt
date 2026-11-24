@@ -1,0 +1,2 @@
+-r assets/requirements/requirements.txt
+openai>=1.10,<4

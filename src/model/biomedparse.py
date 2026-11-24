@@ -23,8 +23,8 @@ def process_multi_prompts(text):
     text = [t for i in range(len(text)) for t in text[i]]
     # new format: [text1 for img1, text2 for img1, text1 for img2]
     return text, num_prompts
-        
-        
+
+
 def tile_feature(feat: torch.Tensor, P: int) -> torch.Tensor:
     # feat: [B, C, H, W], P = num_prompts
     B, C, H, W = feat.shape
@@ -79,7 +79,7 @@ class MaskFormerHead(nn.Module):
             logit_scale = self.predictor.language_encoder.logit_scale
             if text is not None:
                 text, num_prompts = process_multi_prompts(text)
-                
+
                 gtext = self.predictor.language_encoder.get_text_token_embeddings(
                     text, name="grounding", token=False, norm=False
                 )
@@ -101,10 +101,10 @@ class MaskFormerHead(nn.Module):
 
                 extra["grounding_tokens"] = query_emb    # [seq_len, batch_size, dim]
                 extra["grounding_nonzero_mask"] = non_zero_query_mask.t()    # [batch_size, seq_len]
-                
+
                 t2 = time.time()
                 # print("language encoder time: ", t2 - t1)
-        
+
         # repeat image features for each text prompt
         P = int(num_prompts[0])    # assume same number of prompts for all images
         if any([_num != P for _num in num_prompts]):
@@ -172,7 +172,7 @@ class MaskFormerHead(nn.Module):
                 extra["grounding_nonzero_mask"] = non_zero_query_mask.t()
 
         num_prompts = num_prompts.to(mask_features.device)
-        
+
         if num_prompts.max() > num_prompts.min():
             # repeat interleave image features for each text prompt
             mask_features = mask_features.repeat_interleave(num_prompts, dim=0)
@@ -186,7 +186,7 @@ class MaskFormerHead(nn.Module):
             multi_scale_features = [
                 tile_feature(_feature, P) for _feature in multi_scale_features
             ]
-        
+
         predictions = self.predictor(
             x=multi_scale_features, mask_features=mask_features, mask=mask, extra=extra
         )
@@ -225,9 +225,9 @@ class BiomedParseModel(nn.Module):
             pixel_std = [std for _ in range(3)]
         self.register_buffer("pixel_mean", torch.tensor(pixel_mean).view(1,3,1,1))
         self.register_buffer("pixel_std",  torch.tensor(pixel_std).view(1,3,1,1))
-        
+
         self.edge_queries = edge_queries
-        
+
         self.convolute_outputs = convolute_outputs
         if self.convolute_outputs:
             self.output_deconv = nn.ConvTranspose2d(
@@ -303,24 +303,24 @@ class BiomedParseModel(nn.Module):
         image_embedding = self.backbone(image)
         t1 = time.time()
         # print("backbone time: ", t1 - t0)
-        
+
         outputs = self.sem_seg_head.forward(
             image_features=image_embedding, text=text
         )
         t2 = time.time()
         # print("sem_seg_head time: ", t2 - t1)
-        
+
         _, num_prompts = process_multi_prompts(text)
         num_prompts = num_prompts.to(image.device)
         outputs["num_prompts"] = num_prompts
-        
+
         if self.edge_queries > 0:
             # use some of the masks for edge detection
             outputs["edge_masks"] = outputs["pred_gmasks"][:, -self.edge_queries:].mean(dim=1, keepdim=True)
             outputs["pred_gmasks"] = outputs["pred_gmasks"][:, :-self.edge_queries]
         else:
             outputs["edge_masks"] = None
-        
+
         if self.convolute_outputs:
             image = image.repeat_interleave(num_prompts, dim=0)
             outputs["pred_gmasks"] = self.convolution_procedure(image, outputs["pred_gmasks"])
@@ -342,22 +342,22 @@ class BiomedParseModel(nn.Module):
         # pixel_std = self.pixel_std.clone().detach().view(1, 3, 1, 1).to(image.device)
         image = (image - self.pixel_mean) / self.pixel_std
         image_embedding = self.backbone(image)
-        
+
         outputs = self.sem_seg_head.forward_eval(
             image_features=image_embedding, text=text
         )
-        
+
         text, num_prompts = process_multi_prompts(text)
         num_prompts = num_prompts.to(image.device)
         outputs["num_prompts"] = num_prompts
-        
+
         if self.edge_queries > 0:
             # use some of the masks for edge detection
             outputs["edge_masks"] = outputs["pred_gmasks"][:, -self.edge_queries:].mean(dim=1, keepdim=True)
             outputs["pred_gmasks"] = outputs["pred_gmasks"][:, :-self.edge_queries]
         else:
             outputs["edge_masks"] = None
-        
+
         if self.convolute_outputs:
             image = image.repeat_interleave(num_prompts, dim=0)
             outputs["pred_gmasks"] = self.convolution_procedure(image, outputs["pred_gmasks"])

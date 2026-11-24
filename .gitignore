@@ -1,0 +1,78 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+env/
+.env
+.env.*
+!.env.example
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Secrets
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+*.p12
+*.pfx
+credentials.json
+
+# Model weights and medical data
+*.ckpt
+*.pt
+*.pth
+*.safetensors
+*.gguf
+*.nii
+*.nii.gz
+*.npz
+*.npy
+*.pkl
+*.pickle
+*.dcm
+*.mha
+*.mhd
+*.raw
+*.h5
+*.hdf5
+model_weights/
+data/
+runs/
+
+# Experiment outputs
+Inference_results/
+biomedparse_datasets/
+visualizations/
+ks_results/
+examples/
+figures/
+capr_provenance.json
+*.log
+
+# Internal analysis artifacts and detailed documentation (not for publication)
+docs/
+
+# Files kept out of the public release
+Visual Plausibility Refinement.py
+CVPR_Data_Preprocess.py
+Postprocess.py
+BioP2DFG.py
+Chaos_Generate.py
+Figure2_RadarPlot.py
+KS_Statistic.py
+inference_example_3D.ipynb
+assets/readmes/
+inference_utils/target_dist_0.json
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+
+# Local paper manuscript
+/Tell2Adapt.pdf

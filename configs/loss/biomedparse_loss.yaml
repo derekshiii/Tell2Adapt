@@ -1,4 +1,4 @@
 _target_: src.losses.biomedparse_loss.BiomedParseLossCLS
-loss: 
+loss:
   _target_: src.losses.medsam_loss.MedSamLoss
   reduction: "none"

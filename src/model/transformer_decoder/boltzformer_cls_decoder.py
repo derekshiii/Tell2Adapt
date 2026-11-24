@@ -80,7 +80,7 @@ class BoltzFormerTextDecoder(nn.Module):
                 dropout=0.0,
                 normalize_before=pre_norm,
             )
-            
+
             self.initial_ffn_layer = FFNLayer(
                 d_model=hidden_dim,
                 dim_feedforward=dim_feedforward,
@@ -279,7 +279,7 @@ class BoltzFormerTextDecoder(nn.Module):
                 )
             )
             predictions_mask.append(outputs_mask)
-            
+
             # CLASSIFIER
             # Cross Attention to combined output without gradient
             cls_output, _ = self.classifier_cross_attention_layers[i](

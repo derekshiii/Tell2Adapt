@@ -10,7 +10,7 @@ defaults:
 
 
 mounts:
-  external: /datadrive/olympus-external
+  external: /path/to/olympus-external
 project_name: biomedparse
 experiment_output_dir: ${mounts.external}/outputs
 

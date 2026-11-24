@@ -43,7 +43,7 @@ class BiomedParseEvaluator(BaseOlympusEvaluator[SEEMPredictions]):
 
         batch_size, num_masks, height, width = gold_labels.shape
         gold_labels = gold_labels.view(batch_size * num_masks, 1, height, width)
-        
+
         mask_preds = predictions["pred_gmasks"]
         if mask_preds.shape[-2:] != (height, width):
             mask_preds = F.interpolate(
@@ -53,7 +53,7 @@ class BiomedParseEvaluator(BaseOlympusEvaluator[SEEMPredictions]):
                 align_corners=False,
                 antialias=True,
             )
-        
+
         edge_masks = predictions["edge_masks"]
         if edge_masks.shape[-2:] != (height, width):
             edge_masks = F.interpolate(edge_masks, size=(height, width), mode="bicubic", align_corners=False, antialias=True)
@@ -61,12 +61,12 @@ class BiomedParseEvaluator(BaseOlympusEvaluator[SEEMPredictions]):
                                                ).int().unsqueeze(-1).unsqueeze(-1)
 
         gold_labels = gold_labels.to(mask_preds.device)
-        
+
         predictions["edge_label"] = batch_edge_masks(gold_labels)
 
         mask_preds = self.postprocess(mask_preds)
         predictions["raw_masks"] = mask_preds
-        
+
         predicted_labels = mask_preds * (predictions["object_existence"]>0
                                                ).int().unsqueeze(-1).unsqueeze(-1)
 
@@ -99,14 +99,14 @@ class BiomedParseEvaluator(BaseOlympusEvaluator[SEEMPredictions]):
             predictions.labels, gold_labels, metric_stage=metric_stage
         )
         metrics.update(base_metrics)
-        
+
         # # raw mask predictions
         # raw_masks = predictions.predictions["raw_masks"]
         # raw_metrics = self._get_core_metrics(
         #     raw_masks, gold_labels, metric_stage=f'{metric_stage}_raw'
         # )
         # metrics.update(raw_metrics)
-        
+
         # edge masks predictions
         edge_masks = predictions.predictions["edge_masks"]
         edge_labels = predictions.predictions["edge_label"]
@@ -114,7 +114,7 @@ class BiomedParseEvaluator(BaseOlympusEvaluator[SEEMPredictions]):
             edge_masks, edge_labels, metric_stage=f'{metric_stage}_edge'
         )
         metrics.update(edge_metrics)
-        
+
         # extract metrics
         existence_target = (predictions.gold_labels.flatten(1).sum(dim=1) > 0).float()  # [B*N]
         existence_pred = (predictions.predictions["object_existence"]>0).int().view(num_samples)
@@ -153,7 +153,7 @@ class MultiClassEvaluator(BaseOlympusEvaluator[SEEMPredictions]):
             masks = model_outputs[start : start + n]
             scores = object_existence[start : start + n]
             keep = nms_masks_batch_iou(masks > 0.5, scores, iou_threshold=0.5, score_threshold=threshold)
-            
+
             if len(keep) == 0:
                 start += n
                 continue
@@ -161,7 +161,7 @@ class MultiClassEvaluator(BaseOlympusEvaluator[SEEMPredictions]):
                 multiclass_masks[i] = (keep[0]+1) * (masks[keep[0]] > 0.5)
                 start += n
                 continue
-            
+
             # zero out the masks that are not kept
             discard = [j for j in range(n) if j not in keep]
             masks[discard] = 0
@@ -169,7 +169,7 @@ class MultiClassEvaluator(BaseOlympusEvaluator[SEEMPredictions]):
             bg_mask = 0.5 * torch.ones_like(masks[0:1])
             keep_masks = torch.cat([bg_mask, masks], dim=0)
             class_mask = keep_masks.argmax(dim=0)
-            
+
             ids = class_ids[i].split("&")
             id_map = {j+1: int(ids[j]) for j in range(len(ids)) if j+1 != int(ids[j])}
             if len(id_map) > 0:
@@ -177,13 +177,13 @@ class MultiClassEvaluator(BaseOlympusEvaluator[SEEMPredictions]):
                 orig_mask = class_mask.clone()
                 for j in id_map:
                     class_mask[orig_mask == j] = id_map[j]
-             
+
             multiclass_masks[i] = class_mask
             start += n
-            
+
         return multiclass_masks
-        
-        
+
+
 
     def predict(self, model: torch.nn.Module, batch: dict) -> SEEMPredictions:
         # given a model and a batch, return the model's predictions as a custom
@@ -191,13 +191,13 @@ class MultiClassEvaluator(BaseOlympusEvaluator[SEEMPredictions]):
         outputs = model(batch, mode="eval")
 
         predictions = outputs["predictions"]
-        
+
         class_ids = batch["class_ids"]
 
         gold_labels = batch.get("labels", None)
 
         batch_size, height, width = gold_labels.shape
-        
+
         mask_preds = predictions["pred_gmasks"]
         if mask_preds.shape[-2:] != (height, width):
             mask_preds = F.interpolate(
@@ -208,24 +208,24 @@ class MultiClassEvaluator(BaseOlympusEvaluator[SEEMPredictions]):
                 antialias=True,
             )    # [num_preds, 1, h, w]
         mask_preds = mask_preds.squeeze(1)  # [num_preds, h, w]
-        
+
         num_prompts = predictions["num_prompts"]
         object_existence = predictions["object_existence"].squeeze(1)
-        
-        predicted_labels = self.postprocess(mask_preds.detach().to(torch.float32).sigmoid(), 
-                                            object_existence.detach().to(torch.float32).sigmoid(), 
+
+        predicted_labels = self.postprocess(mask_preds.detach().to(torch.float32).sigmoid(),
+                                            object_existence.detach().to(torch.float32).sigmoid(),
                                             num_prompts, class_ids=class_ids, threshold=0.5)
-        
-        
+
+
         # extra predictions with different threshold
         predicted_labels_025 = self.postprocess(mask_preds.detach().to(torch.float32).sigmoid(),
-                                            object_existence.detach().to(torch.float32).sigmoid(), 
+                                            object_existence.detach().to(torch.float32).sigmoid(),
                                             num_prompts, class_ids=class_ids, threshold=0.25)
-        
+
         predicted_labels_0 = self.postprocess(mask_preds.detach().to(torch.float32).sigmoid(),
-                                            object_existence.detach().to(torch.float32).sigmoid(), 
+                                            object_existence.detach().to(torch.float32).sigmoid(),
                                             num_prompts, class_ids=class_ids, threshold=0)
-        
+
         predictions["predicted_labels_025"] = predicted_labels_025
         predictions["predicted_labels_0"] = predicted_labels_0
 
@@ -254,13 +254,13 @@ class MultiClassEvaluator(BaseOlympusEvaluator[SEEMPredictions]):
         thresh_pred = {'05': predictions.labels.cpu().numpy(),
                        '025': predictions.predictions["predicted_labels_025"].cpu().numpy(),
                        '0': predictions.predictions["predicted_labels_0"].cpu().numpy()}
-        
+
         extra_metrics = {}
         for k, v in thresh_pred.items():
             dice, extra = self.seg_metrics(v, predictions.gold_labels.cpu().numpy())
             metrics[f"dice_score_{k}"] = dice
             extra_metrics[k] = extra
-        
+
         save_predictions = True
         if save_predictions and metric_stage == "test":
             # save predictions
@@ -287,11 +287,11 @@ class MultiClassEvaluator(BaseOlympusEvaluator[SEEMPredictions]):
                 output_matrics = {k: v for k, v in metrics.items() if isinstance(v, torch.Tensor)}
                 output_matrics["mask_name"] = mask_name
                 output_matrics['instance_label'] = batch["instance_label"][i].item()
-                
+
                 for k, v in extra_metrics.items():
                     for metric_name, metric_value in v.items():
                         output_matrics[f"{metric_name}_{k}"] = metric_value[i]
-                
+
                 with open(f"{result_path}/{mask_name}.json", 'w') as f:
                     json.dump(output_matrics, f)
 
@@ -305,7 +305,7 @@ class MultiClassEvaluator(BaseOlympusEvaluator[SEEMPredictions]):
             for label, gold in zip(predictions.labels, predictions.gold_labels)
         ]
         return batch_outputs
-    
+
     def seg_metrics(self, pred, gt):
         # evaluation metrics
         dice_scores = []
@@ -321,8 +321,8 @@ class MultiClassEvaluator(BaseOlympusEvaluator[SEEMPredictions]):
             values['gt_sums'].append(T)
             values['pred_sums'].append(P)
         return np.mean(dice_scores), values
-        
-        
+
+
 
 def non_max_suppression(masks, scores, iou_threshold=0.5, score_threshold=0.5):
     # masks: a tensor of masks, each mask is a binary 2D PyTorch tensor (shape: [N, H, W])
@@ -342,7 +342,7 @@ def non_max_suppression(masks, scores, iou_threshold=0.5, score_threshold=0.5):
         if torch.sum(masks[i]) == 0:  # Skip empty masks
             indices = indices[1:]
             continue
-        
+
         # Add the mask to the output
         keep.append(i.item())  # Convert tensor to scalar for appending
 
@@ -371,7 +371,7 @@ def nms_masks_batch_iou(masks: torch.Tensor,
     scores: (N,) tensor of confidence scores
     returns: List[int] of kept indices
     """
-    
+
     # ensure bool for logical ops
     masks = masks.bool()
     # sort in descending score order
@@ -403,7 +403,7 @@ def nms_masks_batch_iou(masks: torch.Tensor,
         # keep only those with IoU <= threshold
         remaining = torch.nonzero(ious <= iou_threshold, as_tuple=False).squeeze(1)
         order = order[1:][remaining]
-    
+
     return keep
 
 
@@ -411,8 +411,8 @@ def compute_dice_coefficient(mask_gt, mask_pred):
   """Compute soerensen-dice coefficient.
 
   compute the soerensen-dice coefficient between the ground truth mask `mask_gt`
-  and the predicted mask `mask_pred`. 
-  
+  and the predicted mask `mask_pred`.
+
   Args:
     mask_gt: 3-dim Numpy array of type bool. The ground truth mask.
     mask_pred: 3-dim Numpy array of type bool. The predicted mask.
@@ -442,7 +442,7 @@ def compute_multi_class_dsc(gt, seg):
         class_inter[int(i)] = float(vol_inter)
         class_gt[int(i)] = float(vol_gt)
         class_pred[int(i)] = float(vol_pred)
-    
+
     if len(label_ids) == 0:
         dsc = 1.0 * (seg.max() == 0)
     else:

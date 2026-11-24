@@ -10,15 +10,15 @@ def get_axis(img):
     diff_ratio = [2*abs(shape[1]-shape[2])/(shape[1]+shape[2]),
             2*abs(shape[0]-shape[2])/(shape[0]+shape[2]),
             2*abs(shape[0]-shape[1])/(shape[0]+shape[1])]
-    
+
     if diff_ratio[0] < 0.5:
         valid_axis = 0
     else:
         min_axis = np.argmin(shape)
         valid_axis = min_axis
-        
+
     return valid_axis
-    
+
 def get_padding(vol):
     shape = vol.shape[1:]
     if shape[0] > shape[1]:
@@ -57,13 +57,13 @@ def pad_and_resize(vol, size):
 def process_input(vol, size):
     # vol: 3D np.ndarray
     # size: int
-    
+
     valid_axis = get_axis(vol)
     vol = np.moveaxis(vol, valid_axis, 0)
-    
+
     # pad to square with equal padding on both sides
     vol, pad_width, padded_size = pad_and_resize(vol, size)
-    
+
     return vol, pad_width, padded_size, valid_axis
 
 
@@ -72,17 +72,17 @@ def process_output(vol, pad_width, padded_size, valid_axis):
     # pad_width: tuple
     # padded_size: int
     # valid_axis: int
-    
+
     if vol.shape[-1] != padded_size or vol.shape[-2] != padded_size:
         vol = F.interpolate(
             vol.unsqueeze(0).float(), size=(padded_size, padded_size), mode="nearest", # align_corners=False
         )
         vol = vol.squeeze(0).int()
-            
+
     vol = vol.cpu().numpy()
     vol = remove_padding(vol, pad_width)
     vol = np.moveaxis(vol, 0, valid_axis)
-    
+
     return vol
 
 
@@ -91,18 +91,18 @@ def slice_nms(mask_preds, scores, iou_threshold=0.5, score_threshold=0.5):
     # mask_preds: (N, D, H, W), binary class probability masks
     # scores: (N, D), object existence scores
     # iou_threshold: IoU threshold for non-max suppression
-    
+
     N, D, H, W = mask_preds.shape
     keep_masks = torch.zeros((N, D), dtype=torch.int64, device=mask_preds.device)
     for i in range(D):
-        keep = nms_masks_batch_iou(mask_preds[:, i] > 0.5, scores[:,i], 
-                                    iou_threshold=iou_threshold, 
+        keep = nms_masks_batch_iou(mask_preds[:, i] > 0.5, scores[:,i],
+                                    iou_threshold=iou_threshold,
                                     score_threshold=score_threshold)
         if len(keep) == 0:
             continue
         # make the kept masks 1 and the rest 0
         keep_masks[keep, i] = 1
-        
+
     return mask_preds * keep_masks.unsqueeze(-1).unsqueeze(-1)
 
 
@@ -116,7 +116,7 @@ def nms_masks_batch_iou(masks: torch.Tensor,
     scores: (N,) tensor of confidence scores
     returns: List[int] of kept indices
     """
-    
+
     # ensure bool for logical ops
     masks = masks.bool()
     # sort in descending score order
@@ -148,5 +148,5 @@ def nms_masks_batch_iou(masks: torch.Tensor,
         # keep only those with IoU <= threshold
         remaining = torch.nonzero(ious <= iou_threshold, as_tuple=False).squeeze(1)
         order = order[1:][remaining]
-    
+
     return keep

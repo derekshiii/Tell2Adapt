@@ -25,7 +25,7 @@ def add_salt_and_pepper_noise(image, noise_ratio=0.02):
     for _ in range(noisy_pixels):
         row, col = np.random.randint(0, h), np.random.randint(0, w)
         if np.random.rand() < 0.5:
-            noisy_image[row, col] = [0, 0, 0] 
+            noisy_image[row, col] = [0, 0, 0]
         else:
             noisy_image[row, col] = [255, 255, 255]
     return noisy_image
@@ -100,12 +100,12 @@ class DataAugmentation:
                 scale = 255.0 #pixel_max - pixel_min
                 shift = np.random.uniform(-scale, scale) * self.pixel_shift_ratio
                 img = img + shift
-                
+
             # Add Gaussian noise
             if self.gaussian_noise and random.random() < self.prob:
                 std = np.random.uniform(0, 25)
                 img = add_gaussian_noise(img, mean=0, std=std)
-                
+
             # Add salt and pepper noise
             if self.salt_and_pepper_noise and random.random() < self.prob:
                 noise_ratio = np.random.uniform(0.02, 0.1)
@@ -188,12 +188,12 @@ class BiomedParseDataset(Dataset):
 
         if self.transforms:
             image, mask_orig = self.transforms(image, mask_orig)
-            
+
         # randomly swap channels 1 and 2
         if random.random() < 0.5:
             image = image[:, :, [0, 2, 1]]
-            
-        
+
+
         # # resize image to 1024x1024
         # image = cv2.resize(
         #     image,
@@ -202,15 +202,15 @@ class BiomedParseDataset(Dataset):
         # ).astype(np.float32)
 
         image = np.transpose(image, (2, 0, 1))
-        
+
         # prepare prompts and corresponding masks
         if self.class_prompts:
             class_prompts = self.class_prompts
         else:
             class_prompts = ann_info["class_prompts"]
-            
+
         is_instance = ann_info["instance_label"]
-            
+
         if not self.all_class_masks:
             # sample class id
             if is_instance:
@@ -235,13 +235,13 @@ class BiomedParseDataset(Dataset):
             else:
                 # multi class mask
                 mask = mask_orig.astype(np.uint8)
-                               
+
         # sample prompt
         selected_sentence = [
             choose_prompt(class_prompts[str(class_id)]) for class_id in class_ids
         ]
         selected_sentence = "[SEP]".join(selected_sentence)
-        
+
         class_ids_str = "&".join([str(class_id) for class_id in class_ids])
 
         return {
